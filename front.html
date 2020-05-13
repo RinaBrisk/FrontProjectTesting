@@ -1,0 +1,120 @@
+<!doctype html>
+<head>
+    <title>Проверка качества студенческих проектов</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="css/srs-styles.css">
+    </head>
+<body>
+
+<header>
+    <h1>Проверка качества студенческих проектов</h1>
+</header>
+
+<section>
+	
+	<form action="rina.html" method="post" accept-charset="UTF-8">
+		
+		<h2>Выберете действие:</h2>
+		
+		<div class="checkbox">
+			<input type="radio" name="method" id="method_0" onchange="onMethodChange(0)" checked>
+				<label for="method_0">Запустить тесты</label>
+		</div>
+				
+		<div class="checkbox">
+			<input type="radio" name="method" id="method_1" onchange="onMethodChange(1)">
+				<label for="method_1">Проверить качество  кода</label>
+		</div>
+		
+		<div class="checkbox">
+			<input type="radio" name="method" id="method_2" onchange="onMethodChange(2)">
+				<label for="method_2">Подсчитать тестовое покрытие</label>
+		</div>
+	
+		<h2>Введите данные:</h2>
+		
+		<div id="div_url">
+			<h3>URL репозитория:</h3>
+			<input type="text" name="url" id="url">
+		</div>
+	
+		<div id="div_file">
+			<h3>Файл с тестами:</h3>
+			<input type="file" name="file">
+		</div>
+		
+		<!-- <button type="submit" style="width:100%">Сохранить</button> -->
+	</form>
+	
+	<button style="width:100%;" onClick="onRunButton()">Выполнить</button>
+	
+	<h2>Результат:</h2>
+	<textarea readonly></textarea>
+	
+</section>
+
+</body>
+
+<script>
+function onMethodChange(method){
+	var div_file = document.getElementById("div_file");
+
+	if(method == 0){
+		div_file.hidden = 0;
+	}
+	else if(method == 1){
+		div_file.hidden = 1;
+	}
+	else if(method == 2){
+		div_file.hidden = 1;
+	}
+}
+
+function onRunButton(){
+	var method_0 = document.getElementById("method_0");
+	var method_1 = document.getElementById("method_1");
+	var method_2 = document.getElementById("method_2");
+	
+	if(method_0.checked)
+	{
+		runTests();
+	}
+	
+	if(method_1.checked)
+	{
+	}
+	
+	if(method_2.checked)
+	{
+	}
+	
+	alert('NOT IMPLEMENTED');
+}
+
+async function runTests(){
+
+	var url_text = document.getElementById("url").value;
+	const service_url = "http://localhost:8082/projects/runTests";
+
+	var project = {
+		url: url_text
+	};
+	
+	var response = await fetch(service_url, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json;charset=utf-8',
+			'Access-Control-Allow-Origin': '*',
+			'Access-Control-Allow-Headers': 'Content-Type, Access-Control-Allow-Headers, X-Requested-With'
+		},
+		body: JSON.stringify(project)
+	});
+
+	var result = await response.json();
+	alert(result.message);
+}
+</script>
+
+</html>
