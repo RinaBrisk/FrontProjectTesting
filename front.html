@@ -42,7 +42,7 @@
 	
 		<div id="div_file">
 			<h3>Файл с тестами:</h3>
-			<input type="file" name="file">
+			<input type="file" name="file" id="file">
 		</div>
 		
 		<!-- <button type="submit" style="width:100%">Сохранить</button> -->
@@ -51,7 +51,7 @@
 	<button style="width:100%;" onClick="onRunButton()">Выполнить</button>
 	
 	<h2>Результат:</h2>
-	<textarea readonly></textarea>
+	<textarea id="result" readonly></textarea>
 	
 </section>
 
@@ -89,32 +89,82 @@ function onRunButton(){
 	if(method_2.checked)
 	{
 	}
-	
-	alert('NOT IMPLEMENTED');
+
 }
 
 async function runTests(){
 
-	var url_text = document.getElementById("url").value;
+	const url_text = document.getElementById("url").value;
 	const service_url = "http://localhost:8082/projects/runTests";
+	const result_field = document.getElementById("result");
+	const file = document.getElementById("file").files[0];
 
-	var project = {
-		url: url_text
-	};
+	var formData = new FormData();
+	formData.append("url", url_text);
 	
+	if(file != null){
+		formData.append("file", file);
+	}
 	var response = await fetch(service_url, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json;charset=utf-8',
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Headers': 'Content-Type, Access-Control-Allow-Headers, X-Requested-With'
-		},
-		body: JSON.stringify(project)
+		method: "POST",
+		body: formData
 	});
 
-	var result = await response.json();
-	alert(result.message);
+	if (response.ok) { 
+		let result = await response.json();
+		
+		if(result.buildResult == "BUILD SUCCESS"){
+			result_field.value += "Успешная сборка проекта\r\n";
+		}else{
+			result_field.value += "Неуспешная сборка проекта\r\n";
+		}
+		
+		result_field.value += " Отчет о тестировании \r\n";
+		
+		result_field.value += " Успешных: " + result.result.passCount + "\r\n";
+		if(result.result.passCount > 0){
+			var case_array = getAllCases(result);
+			case_array.forEach(function(item, i, case_array) {
+				if(result["cases"][i]["state"] == "PASSED"){
+					result_field.value += "  * " + result["cases"][i]["name"] + "\r\n";
+				}
+			});
+		}
+		
+		result_field.value += " Неуспешных: " + result.result.failCount + "\r\n";
+		if(result.result.failCount > 0){
+			var case_array = getAllCases(result);
+			case_array.forEach(function(item, i, case_array) {
+				if(result["cases"][i]["state"] == "FAILED"){
+					result_field.value += "  * " + result["cases"][i]["name"];
+				}
+			});
+		}
+		
+		result_field.value += " Пропущенных: " + result.result.skipCount + "\r\n";
+		if(result.result.skipCount > 0){
+			var case_array = getAllCases(result);
+			case_array.forEach(function(item, i, case_array) {
+				if(result["cases"][i]["state"] == "SKIPPED"){
+					result_field.value += "  * " + result["cases"][i]["name"];
+				}
+			});
+		}
+	}
+		
 }
+
+function getAllCases(response){
+	var i = 0;
+	var case_array = [];
+	while (response["cases"][i] != null) { 
+		case_array.push(response["cases"][i]["name"]);
+		i++;
+	}
+	return case_array;
+}
+
+
 </script>
 
 </html>
