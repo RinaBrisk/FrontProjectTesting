@@ -48,26 +48,35 @@
 		<!-- <button type="submit" style="width:100%">Сохранить</button> -->
 	</form>
 	
-	<button style="width:100%;" onClick="onRunButton()">Выполнить</button>
+	<button id="run_button" style="width:100%;" onClick="onRunButton()">Выполнить</button>
+	
+	<progress max="100" value="0" id="progress-bar" hidden></progress>
 	
 	<div id="div_result_0" hidden>
 		<h2>Результат тестового прогона:</h2>
-		<textarea id="result_0" readonly></textarea>
+		<textarea id="result_state_0" readonly></textarea>
+		<textarea class="textarea_green" id="textarea_green_0" readonly></textarea>
+		<textarea class="textarea_red" id="textarea_red_0" readonly></textarea>
+		<textarea class="textarea_grey" id="textarea_grey_0" readonly></textarea>
 	</div>
 	
 	<div id="div_result_1" hidden>
 		<h2>Результат проверки качества кода:</h2>
-		<textarea id="result_1" readonly></textarea>
+		<textarea id="result_srate_1" readonly></textarea>
+		<textarea class="textarea_red" id="textarea_red_1" readonly></textarea>
+		<textarea class="textarea_yellow" id="textarea_yellow_1" readonly></textarea>
+		<textarea class="textarea_green" id="textarea_green_1" readonly></textarea>
+
 	</div>
 	
-	<a id="result_ref_1" href="https://example.com" target="_blank" hidden>Ссылка на отчет</a>
+	<a id="result_ref_1" href="http://localhost:3000/qualityReport" target="_blank" hidden>Ссылка на отчет</a>
 	
 	<div id="div_result_2" hidden>
 		<h2>Результат подсчета тестового покрытия:</h2>
 		<textarea id="result_2" readonly></textarea>
 	</div>
 	
-	<a id="result_ref_2" href="https://example.com" target="_blank" hidden>Ссылка на отчет</a>
+	<a id="result_ref_2" href="http://localhost:3000/coverageReport" target="_blank" hidden>Ссылка на отчет</a>
 	
 </section>
 
@@ -105,35 +114,51 @@ function onRunButton(){
 		testCoverage();
 	}
 }
-
-//async function getCourses(){
-	//const service_url = "http://mmosevjy.beget.tech/?redirect=0";
-	//const proxyurl = "https://cors-anywhere.herokuapp.com/";
+	var counter = 0;
+	function progressBar() {
+		var progressBar = document.getElementById( 'progress-bar' );
+		counter++;
+		progressBar.value = counter;
+		if( counter == 250 ) {
+			progressBar.hidden = 1;
+			counter = 0;
+			clearInterval( timer );
+		}
+	}
 	
-	//var response = await fetch(proxyurl + service_url);
+	function runProgressBar(){
+		var button = document.getElementById( 'run_button' );
+		button.disabled = true;
+		button.style.background = '#808080';
+		
+		var bar = document.getElementById( 'progress-bar' );
+		bar.hidden = 0;
+		var timer = setInterval( progressBar, 250 );
+	}
+	
+	function stopProgressBar(){
+		var button = document.getElementById( 'run_button' );
+		button.disabled = false;
+		button.style.background = '#0088cc';
+		
+		counter = 249;
+	}
 
-	//if (response.ok) { 
-
-		//var htmlDoc = document.implementation.createHTMLDocument(htmlEncode(response.text));
-		//var element = htmlDoc.getElementsByClassName('courses frontpage-course-list-all');
-		//alert(element.innerHTML);
-	//}
-//}
-
-//function htmlEncode(value){
- // return $('<textarea/>').text(value).html();
-//}
-
-async function runTests(){
+	async function runTests(){
 
 	const url_text = document.getElementById("url").value;
 	const file = document.getElementById("file").files[0];
 	const service_url = "http://localhost:8082/projects/runTests";
-	const result_field = document.getElementById("result_0");
+	const result_state_field = document.getElementById("result_state_0");
+	const result_green_field = document.getElementById("textarea_green_0");
+	const result_red_field = document.getElementById("textarea_red_0");
+	const result_grey_field = document.getElementById("textarea_grey_0");
 	var div_result = document.getElementById('div_result_0');
 
 	var formData = new FormData();
 	formData.append("url", url_text);
+	
+	runProgressBar();
 	
 	if(file != null){
 		formData.append("file", file);
@@ -144,44 +169,47 @@ async function runTests(){
 	});
 	
 	div_result.hidden = 0;
+	
+	stopProgressBar();
 
 	if (response.ok) { 
 		let result = await response.json();
 		
 		if(result.buildResult == "BUILD SUCCESS"){
-			result_field.value += "Успешная сборка проекта\r\n \r\n";
+			result_state_field.value += "Успешная сборка проекта\r\n \r\n";
+		
+			result_green_field.value += " Успешных кейсов: " + result.result.passCount + "\r\n";
+			if(result.result.passCount > 0){
+				var case_array = getAllCases(result);
+				case_array.forEach(function(item, i, case_array) {
+					if(result["cases"][i]["state"] == "PASSED"){
+						result_green_field.value += "   * " + result["cases"][i]["name"] + "\r\n";
+						result_green_field.setAttribute('style', 'height:' + (result_green_field.scrollHeight) + 'px;overflow-y:hidden;');
+					}
+				});
+			}
+			
+			result_red_field.value += " Неуспешных кейсов: " + result.result.failCount + "\r\n";
+			if(result.result.failCount > 0){
+				var case_array = getAllCases(result);
+				case_array.forEach(function(item, i, case_array) {
+					if(result["cases"][i]["state"] == "FAILED"){
+						result_red_field.value += "  * " + result["cases"][i]["name"];
+					}
+				});
+			}
+			
+			result_grey_field.value += " Пропущенных  кейсов: " + result.result.skipCount + "\r\n";
+			if(result.result.skipCount > 0){
+				var case_array = getAllCases(result);
+				case_array.forEach(function(item, i, case_array) {
+					if(result["cases"][i]["state"] == "SKIPPED"){
+						result_grey_field.value += "  * " + result["cases"][i]["name"];
+					}
+				});
+			}
 		}else{
-			result_field.value += "Неуспешная сборка проекта\r\n \r\n";
-		}
-		
-		result_field.value += " Успешных кейсов: " + result.result.passCount + "\r\n";
-		if(result.result.passCount > 0){
-			var case_array = getAllCases(result);
-			case_array.forEach(function(item, i, case_array) {
-				if(result["cases"][i]["state"] == "PASSED"){
-					result_field.value += "  * " + result["cases"][i]["name"] + "\r\n";
-				}
-			});
-		}
-		
-		result_field.value += " Неуспешных кейсов: " + result.result.failCount + "\r\n";
-		if(result.result.failCount > 0){
-			var case_array = getAllCases(result);
-			case_array.forEach(function(item, i, case_array) {
-				if(result["cases"][i]["state"] == "FAILED"){
-					result_field.value += "  * " + result["cases"][i]["name"];
-				}
-			});
-		}
-		
-		result_field.value += " Пропущенных  кейсов: " + result.result.skipCount + "\r\n";
-		if(result.result.skipCount > 0){
-			var case_array = getAllCases(result);
-			case_array.forEach(function(item, i, case_array) {
-				if(result["cases"][i]["state"] == "SKIPPED"){
-					result_field.value += "  * " + result["cases"][i]["name"];
-				}
-			});
+			result_state_field.value += "Неуспешная сборка проекта\r\n \r\n";
 		}
 	}
 }
@@ -200,9 +228,12 @@ async function codeQuality(){
 
 	const url_text = document.getElementById("url").value;
 	const service_url = "http://localhost:8082/projects/quality";
-	const result_field = document.getElementById("result_1");
 	var div_result = document.getElementById("div_result_1");
 	var report_ref = document.getElementById("result_ref_1");
+	const result_state_field = document.getElementById("result_srate_1");
+	const result_red_field = document.getElementById("textarea_red_1");
+	const result_yellow_field = document.getElementById("textarea_yellow_1");
+	const result_green_field = document.getElementById("textarea_green_1");
 
 	var formData = new FormData();
 	formData.append("url", url_text);
@@ -215,22 +246,21 @@ async function codeQuality(){
 	div_result.hidden = 0;
 
 	if (response.ok) { 
-		report_ref.hidden = 0;
 		let result = await response.json();
 		
 		if(result.buildResult == "BUILD SUCCESS"){
-			result_field.value += "Успешная сборка проекта\r\n \r\n";
+			report_ref.hidden = 0;
+			result_state_field.value += "Успешная сборка проекта\r\n \r\n";
+	
+			result_state_field.value += "  Обнаруженные предупреждения:\r\n \r\n";
+			
+			result_red_field.value += "   Высокой важности: " + result.numberOfHighPriorityWarnings + "\r\n";
+			result_yellow_field.value += "   Средней важности: " + result.numberOfNormalPriorityWarnings + "\r\n";
+			result_green_field.value += "   Низкой важности: " + result.numberOfLowPriorityWarnings + "\r\n";
+			
 		}else{
-			result_field.value += "Неуспешная сборка проекта\r\n \r\n";
+			result_state_field.value += "Неуспешная сборка проекта\r\n \r\n";
 		}
-		
-		result_field.value += " Обнаруженные предупреждения:\r\n \r\n";
-		
-		result_field.value += "  Высокой важности: " + result.numberOfHighPriorityWarnings + "\r\n";
-		result_field.value += "  Средней важности: " + result.numberOfNormalPriorityWarnings + "\r\n";
-		result_field.value += "  Низкой важности: " + result.numberOfLowPriorityWarnings + "\r\n";
-		
-		report_ref.href = result.report;
 	}
 }
 
@@ -253,21 +283,22 @@ async function testCoverage(){
 	div_result.hidden = 0;	
 
 	if (response.ok) { 
-		report_ref.hidden = 0;
 		let result = await response.json();
 		
 		if(result.buildResult == "BUILD SUCCESS"){
+			report_ref.hidden = 0;
 			result_field.value += "Успешная сборка проекта\r\n \r\n";
+		
+			result_field.value += "   Объем тестового покрытия\r\n \r\n";
+			var methods_array = getAllMethods(result);
+			methods_array.forEach(function(item, i, methods_array) {
+				result_field.value += "  *  " + item + ": " + result.coverage[item] + "\r\n";
+				result_field.setAttribute('style', 'height:' + (result_field.scrollHeight) + 'px;overflow-y:hidden;');
+			});
+			
 		}else{
 			result_field.value += "Неуспешная сборка проекта\r\n \r\n";
 		}
-		
-		result_field.value += "  Объем тестового покрытия\r\n \r\n";
-		var methods_array = getAllMethods(result);
-		methods_array.forEach(function(item, i, methods_array) {
-			result_field.value += "  * " + item + ": " + result.coverage[item] + "\r\n";
-		});
-		report_ref.href = result.report;
 	}
 }
 
