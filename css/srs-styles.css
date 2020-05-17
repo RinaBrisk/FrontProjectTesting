@@ -6,10 +6,32 @@ body{
     padding:0px;
     font-family:"Open Sans",Arial,sans-serif;
 }
+
 header{
-	padding:20px;
+	padding-bottom: 35px;
     background:#0088cc;
+	padding-left: 185px;
 }
+
+img{
+	height: 70px;
+    border-radius: 0px;
+	width: 7%;
+	float: left;
+	padding: 10px;
+}
+
+.child1{
+	display: inline-block;
+	padding-top: 35px;
+	font-size: 20px;
+}
+
+.child2{
+	display: inline-block;
+	padding-top: 15xp;
+}
+
 nav{
     border-bottom:1px solid #cccccc;
     box-shadow:1px 0px 3px #cccccc;
@@ -98,7 +120,7 @@ progress {
     background-color: #f3f3f3;
     border: 0;
     height: 20px;
-    border-radius: 15px;
+    border-radius: 5px;
 	width: 100%;
 }
 
